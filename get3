@@ -1,0 +1,55 @@
+#!/bin/bash
+
+[[ ${#1} -eq 3 ]] || [[ ${#2} -eq 12 ]] || exit 1
+
+sMedia=/var/www/web1/storage/ShowArchive/
+
+sLog=/var/tmp/$(date "+%Y%m%d%H%M%S").$$
+
+sFmt=${1:0:3}
+sProg=${2:0:12}
+
+sMIME="audio/mpeg"
+[[ "${sFmt}" = "ogg" ]] && sMIME="audio/ogg"
+
+set > ${sLog}
+
+sFile=$( ls ${sMedia}/${sProg}.*.${sFmt} )
+if [[ -n "${sFile}" ]]; then
+  sCopyRange=""
+  sSize=$(stat --printf="%s" ${sFile})
+  if [[ ! -z "${HTTP_RANGE-}" ]]
+  then
+    sRange=${HTTP_RANGE%=*}
+    sValue=${HTTP_RANGE#*=}
+    sVL=${sValue%-*}
+    sVH=${sValue#*-}
+    [[ -z ${sVH} ]] && sVH=$(( sSize - 1 ))
+    if [[ "${sRange}" = "bytes" ]] && [[ ${sVL} -lt ${sSize} ]] && \
+	 [[ ${sVL} -lt ${sVH} ]] && [[ ${sVH} -le ${sSize} ]]
+    then
+	#sCopyRange="iflag=skip_bytes,count_bytes skip=${sVL} count=$((sVH-sVL+1))" 
+	sCopyRange="ibs=1 skip=${sVL} count=$((sVH-sVL+1))" 
+    fi  
+    [[ ${HTTP_RANGE} = "bytes=0-" ]] && sCopyRange=""
+  fi
+  echo "Content-Type: ${sMIME}"
+  echo "Date: $(date -R)"
+  echo "Last-Modified: $(stat --printf="%y" ${sFile})"
+  sName=$(basename ${sFile})
+  echo "ETag: \"${sName:0:12}\""
+#  echo "Content-Disposition: filename=\"$(basename ${sFile})\""
+#  echo "Content-Transfer-Encoding: binary"
+  echo "Accept-Ranges: bytes"
+  if [[ -z ${sCopyRange} ]]; then
+    echo "Content-Length: ${sSize}"
+  else
+    echo "Status: 206 Partial Content"
+    echo "Expires: $(date -R -d tomorrow)"
+    echo "Content-Length: $((sVH-sVL+1))"
+    echo "Content-Range: bytes ${sVL}-${sVH}/${sSize}"
+  fi
+  echo ""
+  echo "${HTTP_RANGE} ${sCopyRange}" >> ${sLog}
+  dd if=${sFile} ${sCopyRange} 2>> ${sLog}
+fi

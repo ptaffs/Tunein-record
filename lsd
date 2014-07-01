@@ -1,0 +1,91 @@
+#!/bin/bash
+
+sDB=$(ls /var/www/data/*.lsdb|tail -1)
+
+echo "Content-type: text/html"
+echo
+cat <<EOH
+<html>
+<head>
+  <title>WRIR Live Sound Demo</title>
+  <link type="text/css" href="/skin/jplayer.blue.monday.css" rel="stylesheet" />
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.min.js"></script>
+  <script type="text/javascript" src="/js/jquery.jplayer.min.js"></script>
+  <script type="text/javascript">
+    \$(document).ready(function(){
+      \$("#jquery_jplayer_1").jPlayer({
+        swfPath: "/js",
+        supplied: "mp3"
+      });
+    });
+  function mySM(sDB,sTR)
+  {
+\$("#jquery_jplayer_1").jPlayer("stop");
+\$("#jquery_jplayer_1").jPlayer("clearMedia");
+\$("#jquery_jplayer_1").jPlayer("setMedia", { mp3: "/cgi-bin/get4?"+sDB+"+"+sTR });
+\$("#jquery_jplayer_1").jPlayer("play");
+  }
+  </script>
+<style type="text/css">
+  body {
+    font-family: sans-serif;
+    font-size: 14px;
+    line-height: 1.4em;
+    padding: 0;
+    } 
+</style>
+</head>
+<body>
+  <h1>WRIR Live Sound Demo</h1>
+  <div id="jquery_jplayer_1" class="jp-jplayer"></div>
+  <div id="jp_container_1" class="jp-audio">
+    <div class="jp-type-single">
+      <div class="jp-gui jp-interface">
+        <ul class="jp-controls">
+          <li><a href="javascript:;" class="jp-play" tabindex="1">play</a></li>
+          <li><a href="javascript:;" class="jp-pause" tabindex="1">pause</a></li>
+          <li><a href="javascript:;" class="jp-stop" tabindex="1">stop</a></li>
+          <li><a href="javascript:;" class="jp-mute" tabindex="1" title="mute">mute</a></li>
+          <li><a href="javascript:;" class="jp-unmute" tabindex="1" title="unmute">unmute</a></li>
+        </ul>
+        <div class="jp-progress">
+          <div class="jp-seek-bar">
+            <div class="jp-play-bar"></div>
+          </div>
+        </div>
+        <div class="jp-volume-bar">
+          <div class="jp-volume-bar-value"></div>
+        </div>
+        <div class="jp-time-holder">
+          <div class="jp-current-time"></div>
+          <div class="jp-duration"></div>
+        </div>
+      </div>
+      <div class="jp-title">
+        <ul>
+          <li>${sProg:0:8} ${sTitle}</li>
+        </ul>
+      </div>
+      <div class="jp-no-solution">
+        <span>Update Required</span>
+        To play the media you will need to either update your browser to a recent version or update your <a href="http://get.adobe.com/flashplayer/" target="_blank">Flash plugin</a>.
+      </div>
+    </div>
+  </div>
+
+EOH
+sDBN=${sDB##*/}
+sDB2=${sDBN%.lsdb}
+echo "<table>"
+echo "<tr><th>TPE1<th>TRCK<th>TIT2<th>TALB<th>folder<th>file</tr>"
+sort -k2,3 -t'|' $sDB |
+while IFS=\| read sID sArt sTrk sTtl sSet sFol sFil
+do
+  echo "<tr><td>${sArt}<td>${sTrk}<td>${sTtl}<td>${sSet}<td>${sFol}<td><a href=\"javascript:this.mySM('${sDB2}','${sID}');\">${sFil}</a></tr>"
+done
+echo "</table>"
+
+cat <<EOH
+</body>
+</html>
+EOH

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+sSched="/var/www/web1/storage/ShowArchive/showdata.txt"
+
+sDay=$(date "+%A")
+sNow=$(date "+%H%M")
+
+sDone=N
+
+echo "Content-type: application/javascript"
+echo
+
+#the script needs a midnight, else won't report on last entry
+sMidnight=/tmp/fakeend.$$
+echo "${sDay}|2400|Midnight||||||" > ${sMidnight}
+
+grep "^${sDay}|" ${sSched} | cat - ${sMidnight} |
+while [[ ${sDone} = N ]] && read sLine
+do
+  IFS='|' read -a sShowData <<< "${sLine}"
+  if [[ 10#${sNow} -ge 10#${sShowData[1]} ]]
+  then 
+    sMatch=("${sShowData[@]}")
+  else
+    echo "var aOnNow={\"title\": \"${sMatch[3]}\","
+    echo "\"presenter\": \"${sMatch[5]}\","
+    echo "\"start\": \"${sMatch[1]}\","
+    echo "\"now\": \"${sNow}\","
+    echo "\"end\": \"${sShowData[1]}\","
+    echo "\"type\": \"${sMatch[4]}\","
+    echo "\"poster\": \"${sMatch[7]}\","
+    echo "\"showurl\": \"${sMatch[6]}\"}"
+    sDone=Y
+  fi
+done 
+
+rm ${sMidnight}
