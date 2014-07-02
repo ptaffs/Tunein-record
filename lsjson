@@ -5,7 +5,7 @@
 sDB=$(ls /var/www/data/*.lsdb|tail -1)
 
 sFirst=0
-echo "Content-type: text/json"
+echo "Content-type: application/json"
 echo "Access-Control-Allow-Origin: *"
 echo
 echo "{\"tracks\": ["
