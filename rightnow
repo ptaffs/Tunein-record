@@ -8,6 +8,7 @@ sNow=$(date "+%H%M")
 sDone=N
 
 echo "Content-type: application/javascript"
+echo "Access-Control-Allow-Origin: *"
 echo
 
 #the script needs a midnight, else won't report on last entry
@@ -22,7 +23,7 @@ do
   then 
     sMatch=("${sShowData[@]}")
   else
-    echo "var aOnNow={\"title\": \"${sMatch[3]}\","
+    echo "{\"title\": \"${sMatch[3]}\","
     echo "\"presenter\": \"${sMatch[5]}\","
     echo "\"start\": \"${sMatch[1]}\","
     echo "\"now\": \"${sNow}\","

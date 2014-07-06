@@ -1,0 +1,56 @@
+#!/bin/bash
+#install to cgi-bin for httpd /usr/local/cgi-bin/web80/showlist
+#ptaffs April 2014. wrir.org 97.3lpfm RVA
+#json version
+
+sMediaPath=/var/www/web1/storage/ShowArchive/
+sFirst=0
+echo "Content-type: application/json"
+echo "Access-Control-Allow-Origin: *"
+echo
+echo "{\"shows\": ["
+find ${sMediaPath}/*.ready -mtime -14|sort -r|
+while read sFile
+do
+  [[ ${sFirst} = 1 ]] && echo ","
+  sFirst=1
+  
+  sBaseName=${sFile##*/}
+  sShow=${sBaseName:13:99}
+  sShow=${sShow%%.ready}
+
+  if [[ -f ${sFile%%.ready}.info ]]; then
+    sInfo=$(<${sFile%%.ready}.info)
+    IFS='|' read sF1 sDa sShow sDJ sSD <<< "${sInfo}"
+  else
+    unset sF1 sDa sDJ sSD
+  fi
+
+#  if [[ -f ${sFile%%.ready}.audio.txt ]]; then
+#    IFS='|' read sTag sDurs < ${sFile%%.ready}.audio.txt
+#  else
+#   unset sDurs
+# fi
+ 
+  sData=$(grep "|${sShow}|" ${sMediaPath}/showdata.txt|head -1)
+  [[ -z "${sData}" ]]  && sData="||${sShow}|${sShow}||||||||"
+# sPrinTime=$(date -d "${sBaseName:0:4}/${sBaseName:4:2}/${sBaseName:6:2} ${sBaseName:8:2}:${sBaseName:10:2}"  +"%a %d %_I:%M %P")
+  sUXTime=$(date -d "${sBaseName:0:4}/${sBaseName:4:2}/${sBaseName:6:2} ${sBaseName:8:2}:${sBaseName:10:2}")
+
+  IFS='|' read -a sShowData <<< "${sData}"
+  
+  echo "{\"title\": \"${sShowData[3]}\","
+  echo "\"show\": \"${sSD}\","
+  echo "\"presenter\": \"${sShowData[5]}\","
+#  echo "\"presenter2\": \"${sDJ}\","
+  echo "\"datestamp\": \"${sBaseName:0:12}\","
+#  echo "\"dateinfo\": \"${sPrinTime}\","
+  echo "\"dateunix\": \"${sUXTime}\","
+  echo "\"mp3\": \"http://files.wrir.org/shows/${sBaseName%%.ready}.mp3\","
+  echo "\"oga\": \"http://files.wrir.org/shows/${sBaseName%%.ready}.ogg\","
+  echo "\"type\": \"${sShowData[4]}\","
+#  echo "\"duration\": \"${sDurs}\","
+  echo "\"poster\": \"${sShowData[7]}\","
+  echo "\"showurl\": \"${sShowData[6]}\"}"
+done
+echo "]}"
